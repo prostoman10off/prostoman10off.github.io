@@ -1,57 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>API Showcase</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Service</title>
+
 <style>
 body {
+    margin: 0;
     font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 50px auto;
+    background: #0f172a;
+    color: #f1f5f9;
+}
+
+.container {
+    max-width: 900px;
+    margin: 60px auto;
     padding: 20px;
-    line-height: 1.6;
-    background-color: #f9f9f9;
 }
+
 h1 {
-    color: #222;
+    font-size: 40px;
+    margin-bottom: 10px;
 }
-.section {
-    margin-bottom: 30px;
+
+.subtitle {
+    color: #94a3b8;
+    margin-bottom: 40px;
 }
+
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
 code {
-    background: #eee;
-    padding: 10px;
+    background: #0f172a;
+    padding: 15px;
     display: block;
-    border-radius: 5px;
+    border-radius: 8px;
+    overflow-x: auto;
+    color: #38bdf8;
 }
+
 .button {
     display: inline-block;
-    padding: 10px 15px;
-    background: #333;
-    color: white;
+    margin-top: 20px;
+    padding: 12px 20px;
+    background: #38bdf8;
+    color: #0f172a;
     text-decoration: none;
-    border-radius: 5px;
+    border-radius: 8px;
+    font-weight: bold;
 }
 </style>
 </head>
+
 <body>
 
-<h1>Моё API</h1>
+<div class="container">
 
-<div class="section">
-<h2>Описание</h2>
-<p>API для работы с данными. Быстрое, удобное, простое подключение.</p>
-</div>
+<h1>My API Service</h1>
+<p class="subtitle">Быстрое и удобное API для работы с данными</p>
 
-<div class="section">
+<div class="card">
 <h2>Пример запроса</h2>
 <code>
-GET https://api.example.com/data  
+GET https://api.example.com/data
 Authorization: Bearer YOUR_API_KEY
 </code>
 </div>
 
-<div class="section">
+<div class="card">
 <h2>Пример ответа</h2>
 <code>
 {
@@ -61,11 +83,9 @@ Authorization: Bearer YOUR_API_KEY
 </code>
 </div>
 
-<div class="section">
-<h2>Контакты</h2>
-<p>Email: your@email.com</p>
+<a href="#" class="button">Связаться</a>
+
 </div>
 
 </body>
 </html>
-<!-- update -->
