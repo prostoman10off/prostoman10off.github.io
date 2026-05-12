@@ -104,34 +104,36 @@ DG.then(function () {
     });
 
     // ✅ СИНХРОНИЗАЦИЯ
-    let isSyncing = false;
+let isSyncing = false;
 
-    // Vector → Raster
-    mapVector.on('moveend', function () {
-        if (isSyncing) return;
-        isSyncing = true;
+// Vector → Raster
+mapVector.on('moveend', function () {
+    if (isSyncing) return;
+    isSyncing = true;
 
-        const center = mapVector.getCenter();
-        const zoom = mapVector.getZoom();
+    const center = mapVector.getCenter();
+    const zoom = mapVector.getZoom();
 
-        rasterMap.setView([center.lat, center.lng], zoom);
+    // MapGL возвращает {lng, lat}
+    rasterMap.setView([center.lat, center.lng], zoom);
 
-        isSyncing = false;
-    });
+    isSyncing = false;
+});
 
-    // Raster → Vector
-    rasterMap.on('moveend', function () {
-        if (isSyncing) return;
-        isSyncing = true;
+// Raster → Vector
+rasterMap.on('moveend', function () {
+    if (isSyncing) return;
+    isSyncing = true;
 
-        const center = rasterMap.getCenter();
-        const zoom = rasterMap.getZoom();
+    const center = rasterMap.getCenter();
+    const zoom = rasterMap.getZoom();
 
-        mapVector.setCenter([center.lng, center.lat]);
-        mapVector.setZoom(zoom);
+    // DG возвращает {lat, lng}
+    mapVector.setCenter([center.lng, center.lat]);
+    mapVector.setZoom(zoom);
 
-        isSyncing = false;
-    });
+    isSyncing = false;
+});
 
 });
 </script>
