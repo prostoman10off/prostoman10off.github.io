@@ -107,7 +107,7 @@ DG.then(function () {
 let isSyncing = false;
 
 // Vector → Raster
-mapVector.on('moveend', function () {
+mapVector.on('move', function () {
     if (isSyncing) return;
     isSyncing = true;
 
@@ -121,7 +121,7 @@ mapVector.on('moveend', function () {
 });
 
 // Raster → Vector
-rasterMap.on('moveend', function () {
+rasterMap.on('move', function () {
     if (isSyncing) return;
     isSyncing = true;
 
