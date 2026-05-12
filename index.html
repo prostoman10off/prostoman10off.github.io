@@ -98,9 +98,7 @@ DG.then(function () {
         center: [55.768005, 37.615655],
         zoom: 13,
         key: KEY
-    });
-});
-    let isSyncing = false;
+            let isSyncing = false;
 
 // Vector → Raster
 mapVector.on('moveend', () => {
@@ -127,6 +125,8 @@ rasterMap.on('moveend', () => {
     mapVector.setZoom(zoom);
 
     isSyncing = false;
+});
+    });
 });
 </script>
 
