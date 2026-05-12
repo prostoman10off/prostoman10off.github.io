@@ -100,6 +100,34 @@ DG.then(function () {
         key: KEY
     });
 });
+    let isSyncing = false;
+
+// Vector → Raster
+mapVector.on('moveend', () => {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    const center = mapVector.getCenter();
+    const zoom = mapVector.getZoom();
+
+    rasterMap.setView([center.lat, center.lng], zoom);
+
+    isSyncing = false;
+});
+
+// Raster → Vector
+rasterMap.on('moveend', () => {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    const center = rasterMap.getCenter();
+    const zoom = rasterMap.getZoom();
+
+    mapVector.setCenter([center.lng, center.lat]);
+    mapVector.setZoom(zoom);
+
+    isSyncing = false;
+});
 </script>
 
 </body>
