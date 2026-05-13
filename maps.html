@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API 2ГИС — Главная</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #f1f5f9;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      margin-bottom: 15px;
+      color: #ffffff;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: #cbd5e1;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 14px;
+      font-size: 26px;
+      color: #38bdf8;
+    }
+
+    .card p {
+      color: #cbd5e1;
+      line-height: 1.6;
+      margin-bottom: 22px;
+      min-height: 96px;
+    }
+
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: bold;
+      padding: 12px 18px;
+      border-radius: 10px;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #0ea5e9;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 50px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>Демонстрация API 2ГИС</h1>
+      <p>
+        Небольшой showcase-проект с примерами работы карт, поиска и навигации.
+        Выбери нужный раздел для просмотра возможностей API.
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Карты</h2>
+        <p>
+          Демонстрация разных форматов карт: векторная карта, растровая карта и статическая карта.
+          Подходит для сравнения возможностей отображения.
+        </p>
+        <a href="maps.html" class="btn">Открыть раздел</a>
+      </div>
+
+      <div class="card">
+        <h2>Поиск</h2>
+        <p>
+          Страница с примерами поиска: адреса, организации, геокодирование и возможный автокомплит.
+          Для демонстрации поисковых методов API 2ГИС.
+        </p>
+        <a href="search.html" class="btn">Открыть раздел</a>
+      </div>
+
+      <div class="card">
+        <h2>Навигация</h2>
+        <p>
+          Раздел для построения маршрутов, выбора точек отправления и назначения,
+          а также демонстрации навигационных возможностей.
+        </p>
+        <a href="navigation.html" class="btn">Открыть раздел</a>
+      </div>
+    </section>
+
+    <div class="footer">
+      API 2ГИС Showcase
+    </div>
+  </div>
+</body>
+</html>
