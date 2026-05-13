@@ -14,7 +14,7 @@
       font-family: Arial, sans-serif;
       background: #0f172a;
       color: #f1f5f9;
-      overflow: hidden; /* Чтобы карта занимала весь экран */
+      overflow: hidden;
     }
 
     /* Стили для навигационного меню */
@@ -32,6 +32,7 @@
       padding: 0 20px;
       display: flex;
       gap: 20px;
+      align-items: center;
     }
 
     nav a {
@@ -50,17 +51,34 @@
       text-decoration: underline;
     }
 
-    /* Стили для контейнера карты */
+    /* Кнопка "Показать код" */
+    .code-btn {
+      margin-left: auto;
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .code-btn:hover {
+      background: #0ea5e9;
+    }
+
+    /* Контейнер для карты */
     #container {
       width: 100%;
-      height: calc(100vh - 60px); /* Высота экрана минус высота меню */
+      height: calc(100vh - 60px);
       margin-top: 0;
     }
 
-    /* Стили для кнопок управления */
+    /* Кнопки управления */
     .controls {
       position: absolute;
-      top: 80px; /* Чуть ниже меню */
+      top: 80px;
       left: 20px;
       z-index: 1000;
       background: rgba(30, 41, 59, 0.9);
@@ -89,6 +107,109 @@
       color: #94a3b8;
       cursor: not-allowed;
     }
+
+    /* Модальное окно */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 1200px;
+      height: 85%;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #38bdf8;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #f1f5f9;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+
+    .close-btn:hover {
+      background: #334155;
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 0;
+    }
+
+    .code-block {
+      margin: 0;
+      padding: 20px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #334155;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .copy-btn {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .copy-btn:hover {
+      background: #0ea5e9;
+    }
   </style>
 </head>
 
@@ -100,6 +221,8 @@
       <a href="index.html">Главная</a>
       <a href="search.html">Поиск</a>
       <a href="navigation.html" class="active">Навигация</a>
+      <!-- Кнопка "Показать код" -->
+      <button class="code-btn" id="showCodeBtn">📄 Показать код</button>
     </div>
   </nav>
 
@@ -111,11 +234,27 @@
     <button id="resetButton" disabled>Выберите две точки на карте</button>
   </div>
 
+  <!-- Модальное окно с кодом -->
+  <div class="modal" id="codeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Исходный код страницы</h3>
+        <button class="close-btn" id="closeModalBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <pre class="code-block" id="codeContent"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="copy-btn" id="copyCodeBtn">📋 Копировать код</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Подключение MapGL -->
   <script src="https://mapgl.2gis.com/api/js/v1"></script>
 
   <script>
-    // ✅ ВСТАВЬ СЮДА СВОЙ КЛЮЧ
+    // ✅ API Ключ
     const API_KEY = 'fe4adee4-e725-4509-809d-c0b52219c501';
     
     // URL для запроса к Routing API
@@ -124,8 +263,8 @@
     const map = new mapgl.Map('container', {
       center: [37.619655, 55.758005],
       zoom: 13,
-      key: API_KEY, // ✅ Вставлен ключ здесь
-      style: 'c080bb6a-8134-4993-93a1-5b4d8c36a59b' // Можно добавить стиль, если нужно
+      key: API_KEY,
+      style: 'c080bb6a-8134-4993-93a1-5b4d8c36a59b'
     });
 
     const markers = [];
@@ -242,6 +381,49 @@
         color: "#0078FF",
       });
     }
+
+    // ============================================
+    // ЛОГИКА МОДАЛЬНОГО ОКНА С КОДОМ
+    // ============================================
+    const showCodeBtn = document.getElementById('showCodeBtn');
+    const codeModal = document.getElementById('codeModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    const codeContent = document.getElementById('codeContent');
+
+    // Открыть модальное окно с кодом
+    showCodeBtn.addEventListener('click', () => {
+      // Получаем полный HTML текущей страницы
+      const fullHTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      codeContent.textContent = fullHTML;
+      codeModal.classList.add('active');
+    });
+
+    // Закрыть модальное окно
+    closeModalBtn.addEventListener('click', () => {
+      codeModal.classList.remove('active');
+    });
+
+    // Закрыть по клику вне окна
+    codeModal.addEventListener('click', (e) => {
+      if (e.target === codeModal) {
+        codeModal.classList.remove('active');
+      }
+    });
+
+    // Копировать код в буфер
+    copyCodeBtn.addEventListener('click', () => {
+      const code = codeContent.textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        copyCodeBtn.textContent = '✅ Скопировано!';
+        setTimeout(() => {
+          copyCodeBtn.textContent = '📋 Копировать код';
+        }, 2000);
+      }).catch(err => {
+        console.error('Ошибка копирования:', err);
+        copyCodeBtn.textContent = '❌ Ошибка';
+      });
+    });
   </script>
 </body>
 
