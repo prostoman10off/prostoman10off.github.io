@@ -7,6 +7,12 @@
   <meta name="description" content="Построение маршрутов через Routing API 2ГИС" />
 
   <style>
+    :root {
+      --header-h: 86px; /* базовая высота хедера без раскрытого JSON */
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
@@ -15,45 +21,51 @@
       overflow: hidden;
     }
 
-    nav {
-      background: #1e293b;
-      padding: 15px 0;
-      box-shadow: 0 2px 5px rgba(0,0,0,.3);
-      position: relative;
-      z-index: 1000;
+    /* ===== Header (фиксированный) ===== */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2000;
+      background: #111b2f;
+      box-shadow: 0 2px 8px rgba(0,0,0,.35);
     }
 
-    nav .nav-container {
+    .nav {
+      background: #1e293b;
+      padding: 12px 0;
+    }
+
+    .nav .nav-container {
       max-width: 1100px;
       margin: 0 auto;
       padding: 0 20px;
       display: flex;
       gap: 20px;
       align-items: center;
+      justify-content: center;
     }
 
-    nav a {
+    .nav a {
       color: #f1f5f9;
       text-decoration: none;
       font-weight: 700;
       transition: color .2s;
     }
-    nav a:hover { color: #38bdf8; }
-    nav a.active { color: #38bdf8; text-decoration: underline; }
+    .nav a:hover { color: #38bdf8; }
+    .nav a.active { color: #38bdf8; text-decoration: underline; }
 
-    /* Блок под меню для сырого JSON */
-    #rawWrap {
-      max-width: 1100px;
-      margin: 10px auto 0;
-      padding: 0 20px;
-      position: relative;
-      z-index: 900;
+    .rawbar {
+      padding: 10px 0 12px;
     }
-
-    #rawWrap .row {
+    .rawbar .row {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
       display: flex;
-      gap: 10px;
       align-items: center;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
@@ -79,7 +91,13 @@
 
     #rawJson {
       display: none;
-      margin: 10px 0 0;
+      max-width: 1100px;
+      margin: 10px auto 0;
+      padding: 0 20px 14px;
+    }
+
+    #rawJson pre {
+      margin: 0;
       padding: 12px;
       background: #0b1220;
       color: #e2e8f0;
@@ -91,18 +109,22 @@
       white-space: pre;
     }
 
-    /* Карта занимает всю высоту, но под меню и rawWrap */
+    /* ===== Карта строго под header ===== */
     #container {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: var(--header-h);
+      bottom: 0;
       width: 100%;
-      height: calc(100vh - 60px);
     }
 
-    /* Панель управления поверх карты */
+    /* ===== Панель управления на карте ===== */
     .controls {
-      position: absolute;
-      top: 120px;
+      position: fixed;
+      top: calc(var(--header-h) + 12px);
       left: 20px;
-      z-index: 1000;
+      z-index: 1500;
       background: rgba(30, 41, 59, 0.92);
       padding: 10px;
       border-radius: 12px;
@@ -110,11 +132,11 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      min-width: 220px;
+      min-width: 240px;
     }
 
     .controls button {
-      padding: 8px 12px;
+      padding: 10px 12px;
       font-size: 14px;
       border: 0;
       border-radius: 10px;
@@ -144,13 +166,13 @@
       line-height: 1.35;
     }
 
-    /* Простая модалка для "Описание маршрута" */
+    /* ===== Модалка "Описание маршрута" ===== */
     .modal {
       display: none;
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,.7);
-      z-index: 2000;
+      z-index: 3000;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -224,21 +246,26 @@
 </head>
 
 <body>
-  <nav>
-    <div class="nav-container">
-      <a href="index.html">Главная</a>
-      <a href="search.html">Поиск</a>
-      <a href="navigation.html" class="active">Навигация</a>
-    </div>
-  </nav>
 
-  <!-- Сырой ответ API под меню -->
-  <div id="rawWrap">
-    <div class="row">
-      <button id="toggleRaw" class="btn" disabled>Показать сырой ответ</button>
-      <span id="rawHint">Поставь 2 точки на карте — появится маршрут и ответ API</span>
+  <div class="header" id="header">
+    <div class="nav">
+      <div class="nav-container">
+        <a href="index.html">Главная</a>
+        <a href="search.html">Поиск</a>
+        <a href="navigation.html" class="active">Навигация</a>
+      </div>
     </div>
-    <pre id="rawJson"></pre>
+
+    <div class="rawbar">
+      <div class="row">
+        <button id="toggleRaw" class="btn" disabled>Показать сырой ответ</button>
+        <span id="rawHint">Поставь 2 точки на карте — появится маршрут и ответ API</span>
+      </div>
+
+      <div id="rawJson">
+        <pre id="rawPre"></pre>
+      </div>
+    </div>
   </div>
 
   <div id="container"></div>
@@ -249,7 +276,6 @@
     <div class="status" id="statusText">Кликни 2 точки на карте</div>
   </div>
 
-  <!-- Окно "Описание маршрута" -->
   <div class="modal" id="routeModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -272,12 +298,17 @@
   <script src="https://mapgl.2gis.com/api/js/v1"></script>
 
   <script>
-    // 1) Ключ — менять не нужно, если он у тебя уже рабочий
     const API_KEY = 'fe4adee4-e725-4509-809d-c0b52219c501';
     const STYLE = 'c080bb6a-8134-4993-93a1-5b4d8c36a59b';
-
-    // Routing API endpoint
     const reqUrl = `https://routing.api.2gis.com/routing/7.0.0/global?key=${API_KEY}`;
+
+    const headerEl = document.getElementById('header');
+
+    function syncHeaderHeightVar() {
+      const h = headerEl.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--header-h', `${Math.ceil(h)}px`);
+    }
+    window.addEventListener('resize', syncHeaderHeightVar);
 
     const map = new mapgl.Map('container', {
       center: [37.619655, 55.758005],
@@ -286,13 +317,13 @@
       style: STYLE
     });
 
-    // UI элементы
     const resetButton = document.getElementById('resetButton');
     const showRouteButton = document.getElementById('showRouteButton');
     const statusText = document.getElementById('statusText');
 
     const toggleRaw = document.getElementById('toggleRaw');
-    const rawJson = document.getElementById('rawJson');
+    const rawJsonWrap = document.getElementById('rawJson');
+    const rawPre = document.getElementById('rawPre');
 
     const routeModal = document.getElementById('routeModal');
     const closeRouteModal = document.getElementById('closeRouteModal');
@@ -301,7 +332,6 @@
     const routeSummary = document.getElementById('routeSummary');
     const routeSteps = document.getElementById('routeSteps');
 
-    // Состояние
     const markers = [];
     let firstPoint = null;
     let secondPoint = null;
@@ -311,7 +341,6 @@
     let lastResponse = null;
     let lastRouteText = '';
 
-    // helpers
     function formatDistance(meters) {
       if (typeof meters !== 'number' || Number.isNaN(meters)) return '';
       if (meters < 1000) return `${Math.round(meters)} м`;
@@ -328,20 +357,21 @@
     }
 
     function setRawVisible(visible) {
-      rawJson.style.display = visible ? 'block' : 'none';
+      rawJsonWrap.style.display = visible ? 'block' : 'none';
       toggleRaw.textContent = visible ? 'Скрыть сырой ответ' : 'Показать сырой ответ';
+      syncHeaderHeightVar();
     }
 
     function updateRawJson() {
-      if (rawJson.style.display !== 'block') return;
-      rawJson.textContent = lastResponse
+      if (rawJsonWrap.style.display !== 'block') return;
+      rawPre.textContent = lastResponse
         ? JSON.stringify(lastResponse, null, 2)
         : 'Ответа пока нет. Поставь 2 точки на карте.';
     }
 
     toggleRaw.addEventListener('click', () => {
-      const isHidden = rawJson.style.display === 'none' || rawJson.style.display === '';
-      setRawVisible(isHidden);
+      const visible = rawJsonWrap.style.display !== 'block';
+      setRawVisible(visible);
       updateRawJson();
     });
 
@@ -364,7 +394,7 @@
       toggleRaw.disabled = true;
 
       statusText.textContent = 'Кликни 2 точки на карте';
-      rawJson.textContent = '';
+      rawPre.textContent = '';
       setRawVisible(false);
     }
 
@@ -380,16 +410,12 @@
     }
 
     function extractRouteLineCoordinates(parsed) {
-      // В примере из docs линия вытаскивается из maneuvers[*].outcoming_path.geometry[*].selection (WKT LINESTRING)
       const maneuvers = parsed?.result?.[0]?.maneuvers || [];
-
-      const coordinates = maneuvers.flatMap((maneuver) => {
+      return maneuvers.flatMap((maneuver) => {
         const geoms = maneuver?.outcoming_path?.geometry || [];
         return geoms.flatMap((g) => {
           const selection = g?.selection;
           if (typeof selection !== 'string') return [];
-
-          // LINESTRING(lon lat, lon lat, ...)
           return selection
             .replace('LINESTRING(', '')
             .replace(')', '')
@@ -397,15 +423,12 @@
             .map(p => p.trim().split(' ').map(Number));
         });
       });
-
-      return coordinates;
     }
 
     function renderRouteDescription(parsed) {
       const route = parsed?.result?.[0];
       const maneuvers = route?.maneuvers || [];
 
-      // Попробуем достать итоги разными способами (ответы могут отличаться)
       const totalDistance =
         route?.total_distance ?? route?.distance ?? parsed?.total_distance ?? null;
       const totalDuration =
@@ -414,7 +437,6 @@
       const summaryParts = [];
       if (totalDistance != null) summaryParts.push(`Дистанция: ${formatDistance(totalDistance)}`);
       if (totalDuration != null) summaryParts.push(`Время: ${formatDuration(totalDuration)}`);
-
       routeSummary.textContent = summaryParts.join(' • ') || 'Итоги маршрута не найдены в ответе.';
 
       routeSteps.innerHTML = '';
@@ -429,7 +451,6 @@
       }
 
       maneuvers.forEach((m, idx) => {
-        // В API обычно есть comment с человекочитаемым действием
         const text =
           m?.comment ||
           m?.outcoming_path_comment ||
@@ -439,7 +460,6 @@
         const dist = m?.outcoming_path?.distance;
         const dur = m?.outcoming_path?.duration;
         const meta = [formatDistance(dist), formatDuration(dur)].filter(Boolean).join(', ');
-
         const line = meta ? `${text} (${meta})` : text;
 
         const li = document.createElement('li');
@@ -458,13 +478,9 @@
       routeModal.classList.add('active');
     });
 
-    function closeRouteModalFn() {
-      routeModal.classList.remove('active');
-    }
-
+    function closeRouteModalFn() { routeModal.classList.remove('active'); }
     closeRouteModal.addEventListener('click', closeRouteModalFn);
     closeRouteModalFooter.addEventListener('click', closeRouteModalFn);
-
     routeModal.addEventListener('click', (e) => {
       if (e.target === routeModal) closeRouteModalFn();
     });
@@ -498,7 +514,6 @@
       .then((parsed) => {
         lastResponse = parsed;
 
-        // включаем UI
         resetButton.disabled = false;
         showRouteButton.disabled = false;
         toggleRaw.disabled = false;
@@ -548,12 +563,11 @@
         fetchRoute([firstPoint, secondPoint]);
         return;
       }
-
-      // если уже выбраны 2 точки — игнорим клики (чтобы не плодить маркеры)
     });
 
-    // стартовое состояние
+    // init
     clearAll();
+    syncHeaderHeightVar();
   </script>
 </body>
 </html>
