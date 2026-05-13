@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API 2ГИС — Vector + Raster + Static</title>
+
+<!-- MapGL (вектор) -->
+<script src="https://mapgl.2gis.com/api/js/v1"></script>
+
+<!-- Raster DG 2.0 -->
+<script src="https://maps.api.2gis.ru/2.0/loader.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+}
+.container {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 20px;
+}
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 40px;
+}
+.map {
+    width: 100%;
+    height: 400px;
+    border-radius: 12px;
+    margin-top: 15px;
+}
+h1 {
+    margin-bottom: 30px;
+}
+h2 {
+    color: #38bdf8;
+}
+img {
+    width: 100%;
+    border-radius: 12px;
+    margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>API 2ГИС</h1>
+
+<!-- 1. Вектор -->
+<div class="card">
+    <h2>1. Векторная карта (MapGL)</h2>
+    <div id="map-vector" class="map"></div>
+
+    <div style="margin-top:20px; line-height:1.6;">
+        <p><strong>3D-карта —</strong> визуально привлекательна и детализирована</p>
+
+        <p><strong>Интерактивность</strong> — можно двигать, приближать или отдалять, вращать</p>
+
+        <p></strong>Поддержка иммерсивных моделей и поэтажных планов</strong></p>
+
+        <p>Подходит для </strong>WEB и SDK</strong></p>
+    </div>
+</div>
+
+<!-- 2. Растр -->
+<div class="card">
+    <h2>2. Растровая карта (Raster Tiles API)</h2>
+    <div id="map-raster" class="map"></div>
+</div>
+
+<!-- 3. Статика -->
+<div class="card">
+    <h2>3. Статическая карта (Static API)</h2>
+    <img src="https://static.maps.2gis.com/1.0?center=37.615655,55.768005&zoom=13&size=900x400&key=YOUR_API_KEY">
+</div>
+
+</div>
+
+<script>
+const KEY = '816c3158-de01-41bb-bef2-e8bc7749e48d';
+const STYLE = 'c080bb6a-8134-4993-93a1-5b4d8c36a59b';
+const CENTER = [37.615655, 55.768005];
+
+// ✅ 1. Вектор (MapGL)
+const mapVector = new mapgl.Map('map-vector', {
+    center: CENTER,
+    zoom: 13,
+    key: KEY,
+    style: STYLE
+});
+
+new mapgl.Marker(mapVector, {
+    coordinates: CENTER
+});
+
+// ✅ 2. Растр (DG 2.0)
+let rasterMap;
+
+DG.then(function () {
+
+    rasterMap = DG.map('map-raster', {
+        center: [55.768005, 37.615655],
+        zoom: 13,
+        key: KEY
+    });
+
+    // ✅ СИНХРОНИЗАЦИЯ
+let isSyncing = false;
+
+// Vector → Raster
+mapVector.on('move', function () {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    const center = mapVector.getCenter();
+    const zoom = mapVector.getZoom();
+
+    // MapGL возвращает {lng, lat}
+    rasterMap.setView([center.lat, center.lng], zoom);
+
+    isSyncing = false;
+});
+
+// Raster → Vector
+rasterMap.on('move', function () {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    const center = rasterMap.getCenter();
+    const zoom = rasterMap.getZoom();
+
+    // DG возвращает {lat, lng}
+    mapVector.setCenter([center.lng, center.lat]);
+    mapVector.setZoom(zoom);
+
+    isSyncing = false;
+});
+
+});
+</script>
+
+</body>
+</html>
