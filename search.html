@@ -1,1 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API 2ГИС — Поиск</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+
+    nav {
+      margin-bottom: 30px;
+    }
+
+    nav a {
+      color: #38bdf8;
+      text-decoration: none;
+      margin-right: 18px;
+      font-weight: bold;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 36px;
+    }
+
+    .subtitle {
+      color: #cbd5e1;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 220px 160px;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    button:hover {
+      background: #0ea5e9;
+    }
+
+    .label {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .code-box,
+    pre {
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .results-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .result-item {
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px;
+      background: #0f172a;
+    }
+
+    .result-item h3 {
+      margin: 0 0 8px;
+      color: #38bdf8;
+      font-size: 20px;
+    }
+
+    .meta {
+      color: #cbd5e1;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .hint {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 900px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a href="index.html">Главная</a>
+      <a href="search.html">Поиск</a>
+      <a href="navigation.html">Навигация</a>
+    </nav>
+
+    <h1>Search API 2ГИС</h1>
+    <p class="subtitle">
+      Страница показывает базовую работу поиска через Places API:
+      формирование запроса, получение ответа и вывод результатов.
+    </p>
+
+    <div class="card">
+      <div class="label">Параметры поиска</div>
+
+      <div class="controls">
+        <input id="query" type="text" value="кафе" placeholder="Что ищем? Например: кафе, аптека, заправка" />
+        <input id="location" type="text" value="37.630866,55.752256" placeholder="Долгота,широта" />
+        <button id="searchBtn">Найти</button>
+      </div>
+
+      <div class="hint">
+        Пример location: <b>37.630866,55.752256</b> — Москва
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Сформированный запрос</div>
+      <div id="requestUrl" class="code-box">Пока запрос не выполнен</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Результаты в удобном виде</div>
+      <div id="results" class="results-list">
+        <div class="hint">Здесь появятся найденные объекты</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Сырой JSON-ответ API</div>
+      <pre id="jsonOutput">Пока данных нет</pre>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = 'fe4adee4-e725-4509-809d-c0b52219c501';
+
+    const queryInput = document.getElementById('query');
+    const locationInput = document.getElementById('location');
+    const searchBtn = document.getElementById('searchBtn');
+    const requestUrlBox = document.getElementById('requestUrl');
+    const jsonOutput = document.getElementById('jsonOutput');
+    const resultsBox = document.getElementById('results');
+
+    async function runSearch() {
+      const query = queryInput.value.trim();
+      const location = locationInput.value.trim();
+
+      if (!query) {
+        alert('Введите поисковый запрос');
+        return;
+      }
+
+      const url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&key=${API_KEY}`;
+
+      requestUrlBox.textContent = url;
+      jsonOutput.textContent = 'Загрузка...';
+      resultsBox.innerHTML = '<div class="hint">Идёт поиск...</div>';
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        jsonOutput.textContent = JSON.stringify(data, null, 2);
+
+        const items = data.result?.items || [];
+
+        if (!items.length) {
+          resultsBox.innerHTML = '<div class="hint">Ничего не найдено</div>';
+          return;
+        }
+
+        resultsBox.innerHTML = items.map((item, index) => {
+          const name = item.name || 'Без названия';
+          const address = item.address_name || 'Адрес не указан';
+          const point = item.point ? `${item.point.lon}, ${item.point.lat}` : 'Координаты не указаны';
+          const type = item.type || 'Тип не указан';
+
+          return `
+            <div class="result-item">
+              <h3>${index + 1}. ${name}</h3>
+              <div class="meta">
+                <div><b>Тип:</b> ${type}</div>
+                <div><b>Адрес:</b> ${address}</div>
+                <div><b>Координаты:</b> ${point}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        jsonOutput.textContent = 'Ошибка запроса: ' + error.message;
+        resultsBox.innerHTML = '<div class="hint">Не удалось получить данные</div>';
+      }
+    }
+
+    searchBtn.addEventListener('click', runSearch);
+
+    queryInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        runSearch();
+      }
+    });
+
+    locationInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        runSearch();
+      }
+    });
+  </script>
+</body>
+</html>
