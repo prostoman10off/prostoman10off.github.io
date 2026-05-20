@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2GIS MapGL + 6 объектов</title>
-
+    <title>2GIS MapGL — 6 объектов</title>
     <style>
       html, body { height: 100%; margin: 0; }
       .app { height: 100%; display: flex; }
@@ -16,7 +15,6 @@
         border-left: 1px solid #e5e5e5;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       }
-      .sidebar h3 { margin: 0 0 10px; font-size: 16px; }
       .btn {
         width: 100%;
         text-align: left;
@@ -28,8 +26,8 @@
         cursor: pointer;
       }
       .btn:hover { background: #f6f6f6; }
-      .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-      .hint { font-size: 12px; color: #666; margin-top: 10px; line-height: 1.4; }
+      #status { font-size: 12px; color: #666; margin-top: 10px; line-height: 1.35; }
+      code { background: #f3f3f3; padding: 0 4px; border-radius: 4px; }
     </style>
   </head>
 
@@ -38,156 +36,129 @@
       <div id="map"></div>
 
       <div class="sidebar">
-        <h3>Объекты</h3>
-        <div id="buttons"></div>
-        <div class="hint">
-          Если кнопки не “оживают”, проверь ключ для Catalog API и доступ к нему.
+        <div style="font-weight:600;">Объекты</div>
+        <div id="buttons" style="margin-top: 10px;"></div>
+        <div id="status">
+          Вставь ключ в <code>API_KEY</code>. Если карта не грузится — смотри Console.
         </div>
       </div>
     </div>
 
     <script src="https://mapgl.2gis.com/api/js/v1"></script>
     <script>
-      // 1) fe4adee4-e725-4509-809d-c0b52219c501
-      const MAPGL_KEY = 'PASTE_MAPGL_KEY_HERE';
+      // fe4adee4-e725-4509-809d-c0b52219c501
+      const API_KEY = 'PASTE_YOUR_KEY_HERE';
 
-      // 2) fe4adee4-e725-4509-809d-c0b52219c501
-      const CATALOG_KEY = 'PASTE_CATALOG_KEY_HERE';
-
-      // Твои ссылки. id берём из хвоста URL.
       const places = [
-        { id: '70000001114107046', url: 'https://2gis.ru/kaliningrad/firm/70000001114107046', label: 'Объект 1' },
-        { id: '70000001114106962', url: 'https://2gis.ru/kaliningrad/firm/70000001114106962', label: 'Объект 2' },
-        { id: '70000001114107076', url: 'https://2gis.ru/kaliningrad/firm/70000001114107076', label: 'Объект 3' },
-        { id: '70000001114106989', url: 'https://2gis.ru/svetlyj/firm/70000001114106989', label: 'Объект 4' },
-        { id: '70000001114107027', url: 'https://2gis.ru/zelenogradsk/firm/70000001114107027', label: 'Объект 5' },
-        { id: '70000001114106756', url: 'https://2gis.ru/svetlogorsk/firm/70000001114106756', label: 'Объект 6' },
+        { id: '70000001114107046', label: '1', url: 'https://2gis.ru/kaliningrad/firm/70000001114107046' },
+        { id: '70000001114106962', label: '2', url: 'https://2gis.ru/kaliningrad/firm/70000001114106962' },
+        { id: '70000001114107076', label: '3', url: 'https://2gis.ru/kaliningrad/firm/70000001114107076' },
+        { id: '70000001114106989', label: '4', url: 'https://2gis.ru/svetlyj/firm/70000001114106989' },
+        { id: '70000001114107027', label: '5', url: 'https://2gis.ru/zelenogradsk/firm/70000001114107027' },
+        { id: '70000001114106756', label: '6', url: 'https://2gis.ru/svetlogorsk/firm/70000001114106756' },
       ];
 
+      const statusEl = document.getElementById('status');
+      const setStatus = (t) => statusEl.textContent = t;
+
+      // Карта
       const map = new mapgl.Map('map', {
-        center: [20.4522, 54.7104], // Калининград (старт)
+        center: [20.4522, 54.7104], // старт: Калининград
         zoom: 10,
-        key: MAPGL_KEY,
-        style: 'c080bb6a-8134-4993-93a1-5b4d8c36a59b'
+        key: API_KEY,
+        style: 'c080bb6a-8134-4993-93a1-5b4d8c36a59b',
       });
 
-      // Один попап, который переиспользуем
+      // Попап + маркеры
       let popup = null;
+      const markers = new Map(); // id -> marker
 
-      // Маркеры по id
-      const markers = new Map();
-
-      function setPopup(coordinates, html) {
+      function setPopup(coordinates, title, subtitle) {
         if (popup) popup.destroy();
-        popup = new mapgl.Popup(map, { coordinates, html });
-      }
-
-      async function loadItemsById(ids) {
-        const url = new URL('https://catalog.api.2gis.com/3.0/items/byid');
-        url.searchParams.set('key', CATALOG_KEY);
-        url.searchParams.set('id', ids.join(','));
-        url.searchParams.set('locale', 'ru_RU');
-        // Важно: нам нужна точка на карте
-        url.searchParams.set('fields', 'items.point,items.name');
-
-        const res = await fetch(url.toString());
-        if (!res.ok) throw new Error(`Catalog API error: ${res.status} ${res.statusText}`);
-        const data = await res.json();
-
-        const items = (data && data.result && data.result.items) ? data.result.items : [];
-        return items;
-      }
-
-      function getLonLatFromItem(item) {
-        // В Catalog API point обычно приходит как { lon, lat }
-        const p = item.point;
-        if (!p || typeof p.lon !== 'number' || typeof p.lat !== 'number') return null;
-        return [p.lon, p.lat];
+        popup = new mapgl.Popup(map, {
+          coordinates,
+          html: `
+            <div style="font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial;">
+              <div style="font-weight: 600; margin-bottom: 6px;">${title}</div>
+              <div style="color:#666;">${subtitle || ''}</div>
+            </div>
+          `,
+        });
       }
 
       function ensureMarker(id, coordinates) {
-        if (markers.has(id)) return markers.get(id);
+        if (markers.has(id)) {
+          markers.get(id).setCoordinates(coordinates);
+          return markers.get(id);
+        }
         const marker = new mapgl.Marker(map, { coordinates });
         markers.set(id, marker);
         return marker;
       }
 
-      function focusPlace(place, item) {
-        const coords = getLonLatFromItem(item);
-        if (!coords) {
-          alert('У объекта нет координат в ответе API (items.point).');
-          return;
+      // Catalog API: получить объект по id (чтобы узнать координаты)
+      async function fetchItemById(id) {
+        const url = new URL('https://catalog.api.2gis.com/3.0/items/byid');
+        url.searchParams.set('key', API_KEY);
+        url.searchParams.set('id', id);
+        url.searchParams.set('locale', 'ru_RU');
+        url.searchParams.set('fields', 'items.point,items.name');
+
+        const res = await fetch(url.toString());
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Catalog API ${res.status} ${res.statusText}: ${text}`);
         }
-
-        ensureMarker(place.id, coords);
-
-        map.setCenter(coords);
-        map.setZoom(16);
-
-        const name = item.name || place.label;
-        setPopup(coords, `
-          <div style="font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial;">
-            <div style="font-weight: 600; margin-bottom: 6px;">${name}</div>
-            <a href="${place.url}" target="_blank" rel="noopener noreferrer">
-              Открыть в 2ГИС
-            </a>
-          </div>
-        `);
+        const data = await res.json();
+        return data?.result?.items?.[0] ?? null;
       }
 
-      async function init() {
-        // Рисуем кнопки
-        const buttonsEl = document.getElementById('buttons');
-        buttonsEl.innerHTML = '';
+      function coordsFromItem(item) {
+        const p = item?.point;
+        if (!p || typeof p.lon !== 'number' || typeof p.lat !== 'number') return null;
+        return [p.lon, p.lat];
+      }
 
-        const btns = places.map((p, idx) => {
-          const b = document.createElement('button');
-          b.className = 'btn';
-          b.textContent = `${idx + 1}. ${p.label}`;
-          b.disabled = true; // включим после загрузки данных
-          buttonsEl.appendChild(b);
-          return b;
-        });
-
-        let items = [];
+      async function showPlace(place) {
+        setStatus(`Загружаю объект ${place.id}…`);
         try {
-          items = await loadItemsById(places.map(p => p.id));
+          const item = await fetchItemById(place.id);
+          if (!item) {
+            setStatus(`Объект ${place.id} не найден в Catalog API.`);
+            return;
+          }
+
+          const coords = coordsFromItem(item);
+          if (!coords) {
+            setStatus(`У объекта ${place.id} нет координат (items.point).`);
+            return;
+          }
+
+          ensureMarker(place.id, coords);
+          map.setCenter(coords);
+          map.setZoom(16);
+
+          const title = item.name || `Объект ${place.label}`;
+          setPopup(coords, title, place.id);
+
+          setStatus(`Показал: ${title}`);
         } catch (e) {
           console.error(e);
-          alert('Не удалось загрузить объекты из Catalog API. Проверь CATALOG_KEY и доступ к API.');
-          // Кнопки оставим, но дадим хотя бы открывать ссылки
-          btns.forEach((b, i) => {
-            b.disabled = false;
-            b.onclick = () => window.open(places[i].url, '_blank', 'noopener,noreferrer');
-          });
-          return;
+          setStatus('Ошибка загрузки данных объекта. Открой Console и проверь ответ Catalog API/ключ.');
         }
-
-        // Сопоставим id -> item
-        const byId = new Map(items.map(it => [String(it.id), it]));
-
-        // Активируем кнопки
-        btns.forEach((b, i) => {
-          const place = places[i];
-          const item = byId.get(place.id);
-
-          b.disabled = false;
-          b.onclick = () => {
-            if (!item) {
-              alert('Объект не найден по id в Catalog API (возможно, нет доступа или id другой).');
-              window.open(place.url, '_blank', 'noopener,noreferrer');
-              return;
-            }
-            focusPlace(place, item);
-          };
-        });
-
-        // Автофокус на первом найденном
-        const first = places.find(p => byId.get(p.id));
-        if (first) focusPlace(first, byId.get(first.id));
       }
 
-      init();
+      // Кнопки
+      const buttonsEl = document.getElementById('buttons');
+      places.forEach((p, idx) => {
+        const b = document.createElement('button');
+        b.className = 'btn';
+        b.textContent = `${idx + 1}. Показать объект на карте`;
+        b.addEventListener('click', () => showPlace(p));
+        buttonsEl.appendChild(b);
+      });
+
+      setStatus('Готово. Нажми кнопку — объект покажется на карте.');
     </script>
   </body>
 </html>
