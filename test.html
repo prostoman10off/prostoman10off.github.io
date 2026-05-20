@@ -1,573 +1,193 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Навигация — API 2ГИС</title>
-  <meta name="description" content="Построение маршрутов через Routing API 2ГИС" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2GIS MapGL + 6 объектов</title>
 
-  <style>
-    :root {
-      --header-h: 86px; /* базовая высота хедера без раскрытого JSON */
-    }
+    <style>
+      html, body { height: 100%; margin: 0; }
+      .app { height: 100%; display: flex; }
+      #map { flex: 1; min-width: 0; }
+      .sidebar {
+        width: 320px;
+        box-sizing: border-box;
+        padding: 12px;
+        border-left: 1px solid #e5e5e5;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+      .sidebar h3 { margin: 0 0 10px; font-size: 16px; }
+      .btn {
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        margin: 0 0 8px;
+        border: 1px solid #d0d0d0;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .btn:hover { background: #f6f6f6; }
+      .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+      .hint { font-size: 12px; color: #666; margin-top: 10px; line-height: 1.4; }
+    </style>
+  </head>
 
-    * { box-sizing: border-box; }
+  <body>
+    <div class="app">
+      <div id="map"></div>
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #f1f5f9;
-      overflow: hidden;
-    }
-
-    /* ===== Header (фиксированный) ===== */
-    .header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 2000;
-      background: #111b2f;
-      box-shadow: 0 2px 8px rgba(0,0,0,.35);
-    }
-
-    .nav {
-      background: #1e293b;
-      padding: 12px 0;
-    }
-
-    .nav .nav-container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 20px;
-      display: flex;
-      gap: 20px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .nav a {
-      color: #f1f5f9;
-      text-decoration: none;
-      font-weight: 700;
-      transition: color .2s;
-    }
-    .nav a:hover { color: #38bdf8; }
-    .nav a.active { color: #38bdf8; text-decoration: underline; }
-
-    .rawbar {
-      padding: 10px 0 12px;
-    }
-    .rawbar .row {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      padding: 8px 12px;
-      border: 0;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 700;
-      background: #38bdf8;
-      color: #0f172a;
-    }
-    .btn:disabled {
-      background: #475569;
-      color: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    #rawHint {
-      color: #94a3b8;
-      font-size: 12px;
-    }
-
-    #rawJson {
-      display: none;
-      max-width: 1100px;
-      margin: 10px auto 0;
-      padding: 0 20px 14px;
-    }
-
-    #rawJson pre {
-      margin: 0;
-      padding: 12px;
-      background: #0b1220;
-      color: #e2e8f0;
-      border-radius: 12px;
-      max-height: 220px;
-      overflow: auto;
-      font-size: 12px;
-      line-height: 1.4;
-      white-space: pre;
-    }
-
-    /* ===== Карта строго под header ===== */
-    #container {
-      position: fixed;
-      left: 0;
-      right: 0;
-      top: var(--header-h);
-      bottom: 0;
-      width: 100%;
-    }
-
-    /* ===== Панель управления на карте ===== */
-    .controls {
-      position: fixed;
-      top: calc(var(--header-h) + 12px);
-      left: 20px;
-      z-index: 1500;
-      background: rgba(30, 41, 59, 0.92);
-      padding: 10px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.35);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-width: 240px;
-    }
-
-    .controls button {
-      padding: 10px 12px;
-      font-size: 14px;
-      border: 0;
-      border-radius: 10px;
-      background-color: #0078FF;
-      color: white;
-      cursor: pointer;
-      transition: background .2s;
-      font-weight: 700;
-    }
-    .controls button:hover { background-color: #005ed0; }
-    .controls button:disabled {
-      background: #475569;
-      color: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    .controls button.secondary {
-      background-color: #10b981;
-    }
-    .controls button.secondary:hover {
-      background-color: #059669;
-    }
-
-    .status {
-      font-size: 12px;
-      color: #94a3b8;
-      line-height: 1.35;
-    }
-
-    /* ===== Модалка "Описание маршрута" ===== */
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.7);
-      z-index: 3000;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal.active { display: flex; }
-
-    .modal-content {
-      width: 100%;
-      max-width: 900px;
-      max-height: 80vh;
-      background: #1e293b;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,.5);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .modal-header, .modal-footer {
-      padding: 14px 16px;
-      background: #0f172a;
-      border-bottom: 1px solid #334155;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .modal-footer {
-      border-bottom: 0;
-      border-top: 1px solid #334155;
-      justify-content: flex-end;
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 16px;
-      color: #38bdf8;
-    }
-
-    .modal-close {
-      background: transparent;
-      border: 0;
-      color: #f1f5f9;
-      font-size: 26px;
-      cursor: pointer;
-      padding: 0 6px;
-      border-radius: 8px;
-    }
-    .modal-close:hover { background: #334155; }
-
-    .modal-body {
-      padding: 14px 16px;
-      overflow: auto;
-    }
-
-    #routeSummary {
-      color: #94a3b8;
-      font-size: 13px;
-      margin: 0 0 12px;
-    }
-
-    #routeSteps {
-      margin: 0;
-      padding-left: 18px;
-      color: #e2e8f0;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    #routeSteps li { margin: 6px 0; }
-  </style>
-</head>
-
-<body>
-
-  <div class="header" id="header">
-    <div class="nav">
-      <div class="nav-container">
-        <a href="index.html">Главная</a>
-        <a href="search.html">Поиск</a>
-        <a href="navigation.html" class="active">Навигация</a>
+      <div class="sidebar">
+        <h3>Объекты</h3>
+        <div id="buttons"></div>
+        <div class="hint">
+          Если кнопки не “оживают”, проверь ключ для Catalog API и доступ к нему.
+        </div>
       </div>
     </div>
 
-    <div class="rawbar">
-      <div class="row">
-        <button id="toggleRaw" class="btn" disabled>Показать сырой ответ</button>
-        <span id="rawHint">Поставь 2 точки на карте — появится маршрут и ответ API</span>
-      </div>
+    <script src="https://mapgl.2gis.com/api/js/v1"></script>
+    <script>
+      // 1) fe4adee4-e725-4509-809d-c0b52219c501
+      const MAPGL_KEY = 'PASTE_MAPGL_KEY_HERE';
 
-      <div id="rawJson">
-        <pre id="rawPre"></pre>
-      </div>
-    </div>
-  </div>
+      // 2) fe4adee4-e725-4509-809d-c0b52219c501
+      const CATALOG_KEY = 'PASTE_CATALOG_KEY_HERE';
 
-  <div id="container"></div>
+      // Твои ссылки. id берём из хвоста URL.
+      const places = [
+        { id: '70000001114107046', url: 'https://2gis.ru/kaliningrad/firm/70000001114107046', label: 'Объект 1' },
+        { id: '70000001114106962', url: 'https://2gis.ru/kaliningrad/firm/70000001114106962', label: 'Объект 2' },
+        { id: '70000001114107076', url: 'https://2gis.ru/kaliningrad/firm/70000001114107076', label: 'Объект 3' },
+        { id: '70000001114106989', url: 'https://2gis.ru/svetlyj/firm/70000001114106989', label: 'Объект 4' },
+        { id: '70000001114107027', url: 'https://2gis.ru/zelenogradsk/firm/70000001114107027', label: 'Объект 5' },
+        { id: '70000001114106756', url: 'https://2gis.ru/svetlogorsk/firm/70000001114106756', label: 'Объект 6' },
+      ];
 
-  <div class="controls">
-    <button id="resetButton" disabled>Сбросить точки</button>
-    <button id="showRouteButton" class="secondary" disabled>Описание маршрута</button>
-    <div class="status" id="statusText">Кликни 2 точки на карте</div>
-  </div>
-
-  <div class="modal" id="routeModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">Описание маршрута</h3>
-        <button class="modal-close" id="closeRouteModal">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <p id="routeSummary"></p>
-        <ol id="routeSteps"></ol>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn" id="copyRouteStepsButton">Копировать шаги</button>
-        <button class="btn" id="closeRouteModalFooter">Закрыть</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://mapgl.2gis.com/api/js/v1"></script>
-
-  <script>
-    const API_KEY = 'fe4adee4-e725-4509-809d-c0b52219c501';
-    const STYLE = 'c080bb6a-8134-4993-93a1-5b4d8c36a59b';
-    const reqUrl = `https://routing.api.2gis.com/routing/7.0.0/global?key=${API_KEY}`;
-
-    const headerEl = document.getElementById('header');
-
-    function syncHeaderHeightVar() {
-      const h = headerEl.getBoundingClientRect().height;
-      document.documentElement.style.setProperty('--header-h', `${Math.ceil(h)}px`);
-    }
-    window.addEventListener('resize', syncHeaderHeightVar);
-
-    const map = new mapgl.Map('container', {
-      center: [37.619655, 55.758005],
-      zoom: 13,
-      key: API_KEY,
-      style: STYLE
-    });
-
-    const resetButton = document.getElementById('resetButton');
-    const showRouteButton = document.getElementById('showRouteButton');
-    const statusText = document.getElementById('statusText');
-
-    const toggleRaw = document.getElementById('toggleRaw');
-    const rawJsonWrap = document.getElementById('rawJson');
-    const rawPre = document.getElementById('rawPre');
-
-    const routeModal = document.getElementById('routeModal');
-    const closeRouteModal = document.getElementById('closeRouteModal');
-    const closeRouteModalFooter = document.getElementById('closeRouteModalFooter');
-    const copyRouteStepsButton = document.getElementById('copyRouteStepsButton');
-    const routeSummary = document.getElementById('routeSummary');
-    const routeSteps = document.getElementById('routeSteps');
-
-    const markers = [];
-    let firstPoint = null;
-    let secondPoint = null;
-    let selecting = 'a';
-    let routeLine = null;
-
-    let lastResponse = null;
-    let lastRouteText = '';
-
-    function formatDistance(meters) {
-      if (typeof meters !== 'number' || Number.isNaN(meters)) return '';
-      if (meters < 1000) return `${Math.round(meters)} м`;
-      return `${(meters / 1000).toFixed(1)} км`;
-    }
-
-    function formatDuration(seconds) {
-      if (typeof seconds !== 'number' || Number.isNaN(seconds)) return '';
-      const m = Math.round(seconds / 60);
-      if (m < 60) return `${m} мин`;
-      const h = Math.floor(m / 60);
-      const mm = m % 60;
-      return `${h} ч ${mm} мин`;
-    }
-
-    function setRawVisible(visible) {
-      rawJsonWrap.style.display = visible ? 'block' : 'none';
-      toggleRaw.textContent = visible ? 'Скрыть сырой ответ' : 'Показать сырой ответ';
-      syncHeaderHeightVar();
-    }
-
-    function updateRawJson() {
-      if (rawJsonWrap.style.display !== 'block') return;
-      rawPre.textContent = lastResponse
-        ? JSON.stringify(lastResponse, null, 2)
-        : 'Ответа пока нет. Поставь 2 точки на карте.';
-    }
-
-    toggleRaw.addEventListener('click', () => {
-      const visible = rawJsonWrap.style.display !== 'block';
-      setRawVisible(visible);
-      updateRawJson();
-    });
-
-    function clearAll() {
-      selecting = 'a';
-      firstPoint = null;
-      secondPoint = null;
-
-      if (routeLine) routeLine.destroy();
-      routeLine = null;
-
-      markers.forEach(m => m.destroy());
-      markers.length = 0;
-
-      lastResponse = null;
-      lastRouteText = '';
-
-      resetButton.disabled = true;
-      showRouteButton.disabled = true;
-      toggleRaw.disabled = true;
-
-      statusText.textContent = 'Кликни 2 точки на карте';
-      rawPre.textContent = '';
-      setRawVisible(false);
-    }
-
-    resetButton.addEventListener('click', clearAll);
-
-    function renderRoute(coordinates) {
-      if (routeLine) routeLine.destroy();
-      routeLine = new mapgl.Polyline(map, {
-        coordinates,
-        width: 6,
-        color: '#0078FF'
+      const map = new mapgl.Map('map', {
+        center: [20.4522, 54.7104], // Калининград (старт)
+        zoom: 10,
+        key: MAPGL_KEY,
+        style: 'c080bb6a-8134-4993-93a1-5b4d8c36a59b'
       });
-    }
 
-    function extractRouteLineCoordinates(parsed) {
-      const maneuvers = parsed?.result?.[0]?.maneuvers || [];
-      return maneuvers.flatMap((maneuver) => {
-        const geoms = maneuver?.outcoming_path?.geometry || [];
-        return geoms.flatMap((g) => {
-          const selection = g?.selection;
-          if (typeof selection !== 'string') return [];
-          return selection
-            .replace('LINESTRING(', '')
-            .replace(')', '')
-            .split(',')
-            .map(p => p.trim().split(' ').map(Number));
-        });
-      });
-    }
+      // Один попап, который переиспользуем
+      let popup = null;
 
-    function renderRouteDescription(parsed) {
-      const route = parsed?.result?.[0];
-      const maneuvers = route?.maneuvers || [];
+      // Маркеры по id
+      const markers = new Map();
 
-      const totalDistance =
-        route?.total_distance ?? route?.distance ?? parsed?.total_distance ?? null;
-      const totalDuration =
-        route?.total_duration ?? route?.duration ?? parsed?.total_duration ?? null;
-
-      const summaryParts = [];
-      if (totalDistance != null) summaryParts.push(`Дистанция: ${formatDistance(totalDistance)}`);
-      if (totalDuration != null) summaryParts.push(`Время: ${formatDuration(totalDuration)}`);
-      routeSummary.textContent = summaryParts.join(' • ') || 'Итоги маршрута не найдены в ответе.';
-
-      routeSteps.innerHTML = '';
-      const linesForCopy = [];
-
-      if (!maneuvers.length) {
-        const li = document.createElement('li');
-        li.textContent = 'Шаги маршрута не найдены в ответе (maneuvers пуст).';
-        routeSteps.appendChild(li);
-        lastRouteText = routeSummary.textContent;
-        return;
+      function setPopup(coordinates, html) {
+        if (popup) popup.destroy();
+        popup = new mapgl.Popup(map, { coordinates, html });
       }
 
-      maneuvers.forEach((m, idx) => {
-        const text =
-          m?.comment ||
-          m?.outcoming_path_comment ||
-          m?.type ||
-          `Шаг ${idx + 1}`;
+      async function loadItemsById(ids) {
+        const url = new URL('https://catalog.api.2gis.com/3.0/items/byid');
+        url.searchParams.set('key', CATALOG_KEY);
+        url.searchParams.set('id', ids.join(','));
+        url.searchParams.set('locale', 'ru_RU');
+        // Важно: нам нужна точка на карте
+        url.searchParams.set('fields', 'items.point,items.name');
 
-        const dist = m?.outcoming_path?.distance;
-        const dur = m?.outcoming_path?.duration;
-        const meta = [formatDistance(dist), formatDuration(dur)].filter(Boolean).join(', ');
-        const line = meta ? `${text} (${meta})` : text;
+        const res = await fetch(url.toString());
+        if (!res.ok) throw new Error(`Catalog API error: ${res.status} ${res.statusText}`);
+        const data = await res.json();
 
-        const li = document.createElement('li');
-        li.textContent = line;
-        routeSteps.appendChild(li);
+        const items = (data && data.result && data.result.items) ? data.result.items : [];
+        return items;
+      }
 
-        linesForCopy.push(`${idx + 1}. ${line}`);
-      });
+      function getLonLatFromItem(item) {
+        // В Catalog API point обычно приходит как { lon, lat }
+        const p = item.point;
+        if (!p || typeof p.lon !== 'number' || typeof p.lat !== 'number') return null;
+        return [p.lon, p.lat];
+      }
 
-      lastRouteText = [routeSummary.textContent, ...linesForCopy].filter(Boolean).join('\n');
-    }
+      function ensureMarker(id, coordinates) {
+        if (markers.has(id)) return markers.get(id);
+        const marker = new mapgl.Marker(map, { coordinates });
+        markers.set(id, marker);
+        return marker;
+      }
 
-    showRouteButton.addEventListener('click', () => {
-      if (!lastResponse) return;
-      renderRouteDescription(lastResponse);
-      routeModal.classList.add('active');
-    });
-
-    function closeRouteModalFn() { routeModal.classList.remove('active'); }
-    closeRouteModal.addEventListener('click', closeRouteModalFn);
-    closeRouteModalFooter.addEventListener('click', closeRouteModalFn);
-    routeModal.addEventListener('click', (e) => {
-      if (e.target === routeModal) closeRouteModalFn();
-    });
-
-    copyRouteStepsButton.addEventListener('click', () => {
-      navigator.clipboard.writeText(lastRouteText || '').then(() => {
-        const prev = copyRouteStepsButton.textContent;
-        copyRouteStepsButton.textContent = 'Скопировано';
-        setTimeout(() => copyRouteStepsButton.textContent = prev, 1200);
-      });
-    });
-
-    function fetchRoute(points) {
-      statusText.textContent = 'Запрос к Routing API...';
-
-      return fetch(reqUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          points,
-          locale: 'ru',
-          transport: 'driving',
-          filters: ['dirt_road', 'toll_road', 'ferry'],
-          output: 'detailed'
-        })
-      })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((parsed) => {
-        lastResponse = parsed;
-
-        resetButton.disabled = false;
-        showRouteButton.disabled = false;
-        toggleRaw.disabled = false;
-
-        statusText.textContent = 'Маршрут построен. Можно открыть описание или сырой ответ.';
-        updateRawJson();
-
-        const lineCoords = extractRouteLineCoordinates(parsed);
-        if (lineCoords && lineCoords.length) {
-          renderRoute(lineCoords);
-        } else {
-          statusText.textContent = 'Маршрут получен, но не удалось извлечь геометрию линии.';
+      function focusPlace(place, item) {
+        const coords = getLonLatFromItem(item);
+        if (!coords) {
+          alert('У объекта нет координат в ответе API (items.point).');
+          return;
         }
-      })
-      .catch((err) => {
-        statusText.textContent = `Ошибка запроса: ${err.message || err}`;
-        console.error(err);
-      });
-    }
 
-    map.on('click', (event) => {
-      if (!event || !event.lngLat || !Array.isArray(event.lngLat) || event.lngLat.length !== 2) {
-        console.error('Invalid click event');
-        return;
+        ensureMarker(place.id, coords);
+
+        map.setCenter(coords);
+        map.setZoom(16);
+
+        const name = item.name || place.label;
+        setPopup(coords, `
+          <div style="font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial;">
+            <div style="font-weight: 600; margin-bottom: 6px;">${name}</div>
+            <a href="${place.url}" target="_blank" rel="noopener noreferrer">
+              Открыть в 2ГИС
+            </a>
+          </div>
+        `);
       }
 
-      const [lng, lat] = event.lngLat;
+      async function init() {
+        // Рисуем кнопки
+        const buttonsEl = document.getElementById('buttons');
+        buttonsEl.innerHTML = '';
 
-      if (selecting !== 'end') {
-        const marker = new mapgl.Marker(map, {
-          coordinates: [lng, lat],
-          icon: 'https://docs.2gis.com/img/dotMarker.svg'
+        const btns = places.map((p, idx) => {
+          const b = document.createElement('button');
+          b.className = 'btn';
+          b.textContent = `${idx + 1}. ${p.label}`;
+          b.disabled = true; // включим после загрузки данных
+          buttonsEl.appendChild(b);
+          return b;
         });
-        markers.push(marker);
+
+        let items = [];
+        try {
+          items = await loadItemsById(places.map(p => p.id));
+        } catch (e) {
+          console.error(e);
+          alert('Не удалось загрузить объекты из Catalog API. Проверь CATALOG_KEY и доступ к API.');
+          // Кнопки оставим, но дадим хотя бы открывать ссылки
+          btns.forEach((b, i) => {
+            b.disabled = false;
+            b.onclick = () => window.open(places[i].url, '_blank', 'noopener,noreferrer');
+          });
+          return;
+        }
+
+        // Сопоставим id -> item
+        const byId = new Map(items.map(it => [String(it.id), it]));
+
+        // Активируем кнопки
+        btns.forEach((b, i) => {
+          const place = places[i];
+          const item = byId.get(place.id);
+
+          b.disabled = false;
+          b.onclick = () => {
+            if (!item) {
+              alert('Объект не найден по id в Catalog API (возможно, нет доступа или id другой).');
+              window.open(place.url, '_blank', 'noopener,noreferrer');
+              return;
+            }
+            focusPlace(place, item);
+          };
+        });
+
+        // Автофокус на первом найденном
+        const first = places.find(p => byId.get(p.id));
+        if (first) focusPlace(first, byId.get(first.id));
       }
 
-      if (selecting === 'a') {
-        firstPoint = { lon: lng, lat: lat };
-        selecting = 'b';
-        statusText.textContent = 'Выбери вторую точку.';
-        return;
-      }
-
-      if (selecting === 'b') {
-        secondPoint = { lon: lng, lat: lat };
-        selecting = 'end';
-        fetchRoute([firstPoint, secondPoint]);
-        return;
-      }
-    });
-
-    // init
-    clearAll();
-    syncHeaderHeightVar();
-  </script>
-</body>
+      init();
+    </script>
+  </body>
 </html>
